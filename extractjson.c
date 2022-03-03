@@ -20,7 +20,7 @@
  *              Constants
  ***************************************************************************/
 #define NAME        "extractjson"
-#define DOC         "Extract json from FILE or stdin (-)"
+#define DOC         "Extract json from FILE or stdin (-) ignoring no json prefix or postfix data. You can use with fq utility"
 
 #define VERSION     "1.0.0"
 #define SUPPORT     "<niyamaka at yuneta.io>"
@@ -33,11 +33,13 @@
  *  Used by main to communicate with parse_opt.
  */
 #define MIN_ARGS 0
-#define MAX_ARGS 1
+#define MAX_ARGS 0
 struct arguments
 {
     char *args[MAX_ARGS+1];     /* positional args */
-    int line_size;              /* line size */
+    int max_matches;              /* line size */
+    int use_file;
+    const char *json_file;
 };
 
 /***************************************************************************
@@ -55,7 +57,7 @@ const char *argp_program_bug_address = SUPPORT;
 static char doc[] = DOC;
 
 /* A description of the arguments we accept. */
-static char args_doc[] = "FILE";
+static char args_doc[] = "";
 
 /*
  *  The options we understand.
@@ -63,7 +65,8 @@ static char args_doc[] = "FILE";
  */
 static struct argp_option options[] = {
 /*-name-------------key-----arg---------flags---doc-----------------group */
-{"line-size",       's',    "SIZE",     0,      "Line size",    0},
+{"file",            'f',    "FILE",     0,      "File with json", 0},
+{"max-match",       'm',    "NUMBER",   0,      "Maximum number of matches (0 no limit)",    0},
 {0}
 };
 
@@ -87,8 +90,12 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
     struct arguments *arguments = state->input;
 
     switch (key) {
-    case 's':
-        arguments->line_size = atoi(arg);
+    case 'f':
+        arguments->json_file = arg;
+        arguments->use_file = 1;
+        break;
+    case 'm':
+        arguments->max_matches = atoi(arg);
         break;
 
     case ARGP_KEY_ARG:
@@ -115,17 +122,42 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 /***************************************************************************
  *
  ***************************************************************************/
-int your_utility(const char *filename, int line_size)
+int json_stream_callback(
+    void *user_data,
+    json_t *dict_found  // owned!!
+)
 {
-    if(empty_string(filename)) {
+    print_json(dict_found);
+    json_decref(dict_found);
+    return 0;
+}
 
+/***************************************************************************
+ *
+ ***************************************************************************/
+int your_utility(int use_file, const char *filename, int max_matches)
+{
+    if(!use_file) {
+        filename = "/dev/stdin";
     }
+    if(empty_string(filename)) {
+        printf("What filename?\n");
+        exit(-1);
+    }
+
+    stream_json_filename_parser(
+        filename,
+        json_stream_callback,
+        0,  // user_data,
+        0   // 1 log, 2 log+dump
+    );
+
+
     FILE *file = fopen(filename, "r");
     if(!file) {
         printf("Cannot open '%s': %s\n", filename, strerror(errno));
         exit(-1);
     }
-
 
     fclose(file);
     return 0;
@@ -141,7 +173,9 @@ int main(int argc, char *argv[])
     /*
      *  Default values
      */
-    arguments.line_size = 70;
+    arguments.use_file = 0;
+    arguments.json_file = "";
+    arguments.max_matches = 0;
 
     /*
      *  Parse arguments
@@ -151,5 +185,9 @@ int main(int argc, char *argv[])
     /*
      *  Do your work
      */
-    return your_utility(arguments.args[0], arguments.line_size);
+    return your_utility(
+        arguments.use_file,
+        arguments.json_file,
+        arguments.max_matches
+    );
 }
