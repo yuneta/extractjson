@@ -20,7 +20,7 @@
  *              Constants
  ***************************************************************************/
 #define NAME        "extractjson"
-#define DOC         "Extract json from FILE or stdin (-) ignoring no json prefix or postfix data. You can use with fq utility"
+#define DOC         "Extract json from FILE or stdin (-) ignoring no json prefix or postfix data. Examples:\nycommand -c 'command-yuno id=gpu service=__yuno__ command=view-config' |extractjson |fx\nycommand -c 'command-yuno id=gpu service=__yuno__ command=view-gobj-tree' |extractjson |fx"
 
 #define VERSION     "1.0.0"
 #define SUPPORT     "<niyamaka at yuneta.io>"
