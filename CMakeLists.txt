@@ -1,8 +1,8 @@
 ##############################################
 #   CMake
 ##############################################
-project(extractjson C)
 cmake_minimum_required(VERSION 3.0)
+project(extractjson C)
 include(CheckIncludeFiles)
 include(CheckSymbolExists)
 
